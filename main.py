@@ -15,8 +15,7 @@ import requests
 def Filter(text: str):
     K = text.split(" ")
     K.remove(K[0])
-    result = " ".join(K)
-    return result
+    return " ".join(K)
        
 def get_search_results(query):  
         try:
@@ -80,33 +79,31 @@ def get_manga_details(mangaid):
 
 
 def get_manga_chapter(mangaid, chapNumber):  
-        try:
-            mangalink = f"http://kissmanga.nl/{mangaid}-chapter-{chapNumber}"
-            response = requests.get(mangalink)
-            response_html = response.text
-            soup = BeautifulSoup(response_html, 'lxml')
-            source_url = soup.find("p", id="arraydata")
-            totalPages = source_url.text.split(",")
-            res_search_list = {"totalPages":f"{totalPages}"}
-            return res_search_list
-        except AttributeError:
-            return "Invalid Mangaid or chapter number"
-        except requests.exceptions.ConnectionError:
-            return {"status":"404", "reason":"Check the host's network Connection"}
+    try:
+        mangalink = f"http://kissmanga.nl/{mangaid}-chapter-{chapNumber}"
+        response = requests.get(mangalink)
+        response_html = response.text
+        soup = BeautifulSoup(response_html, 'lxml')
+        source_url = soup.find("p", id="arraydata")
+        totalPages = source_url.text.split(",")
+        return {"totalPages":f"{totalPages}"}
+    except AttributeError:
+        return "Invalid Mangaid or chapter number"
+    except requests.exceptions.ConnectionError:
+        return {"status":"404", "reason":"Check the host's network Connection"}
        
 def read_html(lol):  # returns list of image links of pages of full chapter [imglink1, imglink2, full chapter]
-        try:
-            url = f"{lol}"
-            response = requests.get(url)
-            response_html = response.text
-            soup = BeautifulSoup(response_html, 'lxml')
-            chapter_pages = soup.find("p", id="arraydata")
-            pages = chapter_pages.text.split(",")
-            return pages
-        except AttributeError:
-            return "Invalid Mangaid or chapter number"
-        except requests.exceptions.ConnectionError:
-            return "Check the host's network Connection"
+    try:
+        url = f"{lol}"
+        response = requests.get(url)
+        response_html = response.text
+        soup = BeautifulSoup(response_html, 'lxml')
+        chapter_pages = soup.find("p", id="arraydata")
+        return chapter_pages.text.split(",")
+    except AttributeError:
+        return "Invalid Mangaid or chapter number"
+    except requests.exceptions.ConnectionError:
+        return "Check the host's network Connection"
        
 
 from telegraph.aio import Telegraph
@@ -131,14 +128,12 @@ def root(request: Request):
 
 @app.get('/search')
 async def search(q):
-    manga_search = get_search_results(query=q)
-    return manga_search
+    return get_search_results(query=q)
 
 
 @app.get('/details')
 def manga_detail(manga):
-    manga_details = get_manga_details(mangaid=manga)
-    return manga_details
+    return get_manga_details(mangaid=manga)
 
 
 @app.get('/manga/read')
@@ -169,18 +164,14 @@ async def read(manga, chapter):
 @app.get('/manga/pdf')
 def episode_pdf(manga, chapter):
     chapurl = f"http://kissmanga.nl/{manga}-chapter-{chapter}"
-    chap = read_html(chapurl)   
-    i = 1
+    chap = read_html(chapurl)
     Download = f"{manga}-Chapter-{chapter}"
-    if os.path.exists(Download):
-        return FileResponse(f"{Download}.pdf", media_type="application/pdf")
-    else:
+    if not os.path.exists(Download):
         os.mkdir(Download)
-        for x in chap:
+        for i, x in enumerate(chap, start=1):
             res = requests.get(x).content
             with open(f"{Download}/{i}.jpg" , "wb") as f:
                 f.write(res)
-            i += 1
             file_paths = []
             for root, directories, files in os.walk(f"{Download}"):
                 for filename in files:
@@ -190,11 +181,10 @@ def episode_pdf(manga, chapter):
             file_paths.sort(key=lambda f: int(re.sub('\D', '', f)))
             with open(f"{Download}.pdf" ,"wb") as f:
                 f.write(img2pdf.convert(file_paths)) 
-       
-        return FileResponse(f"{Download}.pdf", media_type="application/pdf")
+
+    return FileResponse(f"{Download}.pdf", media_type="application/pdf")
     
 
 @app.get('/chapter')
 def chapter_img(manga, chapter):
-    manga_chapter = get_manga_chapter(mangaid=manga, chapNumber=chapter)    
-    return manga_chapter
+    return get_manga_chapter(mangaid=manga, chapNumber=chapter)
